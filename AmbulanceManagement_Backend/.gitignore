@@ -1,0 +1,10 @@
+# Ignore env vars finel name config.env
+.env
+config.env
+
+# Node dependencies
+node_modules/
+
+# Logs
+logs
+*.log
