@@ -8,7 +8,7 @@ WORKDIR /app
 RUN apk add --no-cache libaio libnsl libc6-compat curl unzip
 
 # Download and install Oracle Instant Client
-RUN mkdir -p /opt/oracle && \
+RUN mkdir -p /opt/oracle /etc/ld.so.conf.d && \
     cd /opt/oracle && \
     curl -o instantclient-basiclite.zip https://download.oracle.com/otn_software/linux/instantclient/instantclient-basiclite-linuxx64.zip && \
     unzip instantclient-basiclite.zip && \
@@ -19,13 +19,13 @@ RUN mkdir -p /opt/oracle && \
     ldconfig || true
 
 # Set Oracle environment variables
-ENV LD_LIBRARY_PATH=/opt/oracle/instantclient_21_1:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH=/opt/oracle/instantclient_21_1
 
 # Copy package files
-COPY package.json package-lock.json* ./
+COPY package.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm install --production
 
 # Stage 2: Runner
 FROM node:20-alpine AS runner
@@ -34,12 +34,15 @@ WORKDIR /app
 # Install runtime dependencies
 RUN apk add --no-cache libaio libnsl libc6-compat
 
+# Create directory for ld config
+RUN mkdir -p /etc/ld.so.conf.d
+
 # Copy Oracle Instant Client from deps stage
 COPY --from=deps /opt/oracle /opt/oracle
 COPY --from=deps /etc/ld.so.conf.d/oracle-instantclient.conf /etc/ld.so.conf.d/
 
 # Set Oracle environment variables
-ENV LD_LIBRARY_PATH=/opt/oracle/instantclient_21_1:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH=/opt/oracle/instantclient_21_1
 
 # Create a non-root user
 RUN addgroup --system --gid 1001 nodejs && \
